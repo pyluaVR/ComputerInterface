@@ -29,7 +29,6 @@ namespace ComputerInterface
         private ComputerViewPlaceholderFactory _viewFactory;
 
         private MainMenuView _mainMenuView;
-        private WarnView _warningView;
 
         private readonly List<CustomScreenInfo> _customScreenInfos = new List<CustomScreenInfo>();
         private readonly Dictionary<MonitorLocation, CustomScreenInfo> _customScreenDict = new Dictionary<MonitorLocation, CustomScreenInfo>();
@@ -55,18 +54,14 @@ namespace ComputerInterface
                 MonitorScale = Tuple.Create(_monitor.Width, _monitor.Height);
             }
         }
+        public MonitorType MonitorType;
         public static Tuple<int, int> MonitorScale = Tuple.Create(0, 0);
 
-        private IMonitor _monitor;
-        private List<IMonitor> _monitors = new List<IMonitor>();
-
-        public MonitorType MonitorType;
         public Dictionary<MonitorType, IMonitor> _monitorDict = new Dictionary<MonitorType, IMonitor>();
+        private List<IMonitor> _monitors = new List<IMonitor>();
+        private IMonitor _monitor;
 
-        private bool _internetConnected => Application.internetReachability != NetworkReachability.NotReachable;
-        private bool _connectionError;
-
-        enum MonitorLocation
+		enum MonitorLocation
         {
             Stump,
             Igloo,
@@ -85,7 +80,6 @@ namespace ComputerInterface
             CIConfig config,
             AssetsLoader assetsLoader,
             MainMenuView mainMenuView,
-            WarnView warningView,
             ComputerViewPlaceholderFactory viewFactory,
             List<IComputerModEntry> computerModEntries,
             List<IQueueInfo> queues,
@@ -100,7 +94,6 @@ namespace ComputerInterface
             _assetsLoader = assetsLoader;
 
             _mainMenuView = mainMenuView;
-            _warningView = warningView;
             _cachedViews.Add(typeof(MainMenuView), _mainMenuView);
 
             _viewFactory = viewFactory;
@@ -141,14 +134,6 @@ namespace ComputerInterface
                 pluginInfo.Instance.enabled = false;
             }
 
-            if (PhotonNetworkController.Instance.wrongVersion)
-            {
-                _computerViewController.SetView(_warningView, new object[] {new WarnInfo()
-                    {
-                        _warnType = WarnType.Outdated
-                    }});
-                return;
-            }
             _computerViewController.SetView(view, null);
             view.ShowEntries(computerModEntries);
         }
@@ -163,29 +148,6 @@ namespace ComputerInterface
                 foreach (var key in _keys)
                 {
                     key.Fetch();
-                }
-            }
-
-            // Make sure the computer is ready
-            if (_computerViewController.CurrentComputerView != null)
-            {
-                // Check to see if our connection is off
-                if (!_internetConnected && !_connectionError)
-                {
-                    _connectionError = true;
-                    _computerViewController.SetView(_warningView, new object[] {new WarnInfo()
-                    {
-                        _warnType = WarnType.NoInternet
-                    }});
-                    _gorillaComputer.UpdateFailureText("NO WIFI OR LAN CONNECTION DETECTED.");
-                }
-               
-                // Check to see if we're back online
-                if (_internetConnected && _connectionError)
-                {
-                    _connectionError = false;
-                    _computerViewController.SetView(_computerViewController.CurrentComputerView == _warningView ? _mainMenuView : _computerViewController.CurrentComputerView, null);
-                    _gorillaComputer.InvokeMethod("RestoreFromFailureState", null);
                 }
             }
         }
